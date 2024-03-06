@@ -1,2 +1,7 @@
 Decision Tree Analysis/data
 mnist.npz
+*.pyc
+test_final_dataset.csv
+padding_test.png
+msci_waveforms_df.csv
+msci_waveforms_df.parquet
