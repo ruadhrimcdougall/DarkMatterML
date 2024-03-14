@@ -21,6 +21,11 @@ def waveforms_of_truth(waveforms_df, orig_train_df):
         # Catch other potential exceptions and print the error message
         print(f"An error occurred: {e}")
     # waveforms_df.info()
+    
+    # need to delete duplicated rows of the original dataset for this to work
+    orig_train_df = orig_train_df.set_index(['runID', 'eventID'])
+    orig_train_df = orig_train_df[~orig_train_df.index.duplicated()]
+    orig_train_df = orig_train_df.reset_index()
 
     # Step 1: Filter orig_train_df to only include rows that have matching values in both 'runID' and 'eventID' in waveforms_df.
     orig_train_df_filtered = orig_train_df.merge(waveforms_df[['runID', 'eventID']], on=['runID', 'eventID'], how='inner')
@@ -35,8 +40,25 @@ def waveforms_of_truth(waveforms_df, orig_train_df):
 
     # print(orig_train_df_reordered[['label', 'type']])
 
-    waveforms_df['label'] = orig_train_df_reordered['label'].values
-    waveforms_df['type'] = orig_train_df_reordered['type'].values
+    # waveforms_df['label'] = orig_train_df_reordered['label'].values
+    # waveforms_df['type'] = orig_train_df_reordered['type'].values
+    # waveforms_df['ext_elec'] = orig_train_df_reordered['ext_elec'].values
+    columns_and_types = {'area': 'float64',
+                         'max_pulse_height': 'float64',
+                         'ext_elec': 'float64',
+                         'x':'float64',
+                         'y':'float64',
+                         'r':'float64',
+                         'S2_width':'float64',
+                         'label':'int64',
+                         'type':'object'
+                         }
+
+    # waveforms_df[['area', 'max_pulse_height', 'ext_elec', 'x', 
+    #               'y', 'r', 'S2_width', 'label', 'type']] = orig_train_df_reordered[['area', 'max_pulse_height', 'ext_elec', 
+    #                                                                                  'x', 'y', 'r', 'S2_width', 'label', 'type']].values
+    for column, dtype in columns_and_types.items():
+        waveforms_df[column] = orig_train_df_reordered[column].values.astype(dtype)
 
     waveforms_df = waveforms_df.reset_index()
 
@@ -70,5 +92,5 @@ def pad_waveforms(waveforms_df):
 
     #max_len = waveforms_df['times'].apply(len).max()
     #waveforms_df['times'] = waveforms_df['times'].apply(lambda x: centre_padding(x, max_length))
-    waveforms_df['padded_samples'] = waveforms_df['samples'].apply(lambda x: centre_padding(x, max_length))#.values()
+    waveforms_df['padded_samples'] = waveforms_df['samples'].apply(lambda x: centre_padding(x, max_length))#.values#()
     return waveforms_df

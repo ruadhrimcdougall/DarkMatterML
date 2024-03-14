@@ -5,3 +5,6 @@ test_final_dataset.csv
 padding_test.png
 msci_waveforms_df.csv
 msci_waveforms_df.parquet
+all_msci_waveforms_df.parquet
+padding_test_nogas.png
+*.png
