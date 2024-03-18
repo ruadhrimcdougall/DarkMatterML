@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import hist
 from hist import Hist
+from sklearn.model_selection import train_test_split, StratifiedKFold
+
 
 
 # read in waveform dataframe
@@ -52,14 +54,13 @@ final_dataset = data.waveforms_of_truth(waveforms, orig_train)
 # check the padding works out
 df_cut = final_dataset[final_dataset["type"] != 'gas']
 df_cut.info()
-padded_data = data.pad_waveforms2(df_cut,'reflect')
+padded_data = data.pad_waveforms(df_cut,'test')
 print('Waveform Dataset')
 padded_data.info()
 print()
 #padded_data.head()
 
-plt.plot(np.array(padded_data['padded_samples'])[4])
-plt.show()
+
 """
 # padded_data.info()
 rand_event_num = np.random.randint(0, padded_data.shape[0])

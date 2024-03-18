@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from sklearn.model_selection import train_test_split, StratifiedKFold
 
 
 def waveforms_of_truth(waveforms_df, orig_train_df):
@@ -66,35 +67,6 @@ def waveforms_of_truth(waveforms_df, orig_train_df):
 
     return waveforms_df
 
-def pad_waveforms(waveforms_df):
-    '''
-    Expectation is that the waveforms dataframe is put through this function after it has been assigned
-    truth values by the waveforms_of_truth function
-    '''
-    def centre_padding(waveform, max_len):
-        total_padding = max_len - len(waveform)
-        padding_left = total_padding // 2
-        padding_right = total_padding - padding_left
-        return np.pad(waveform, (padding_left, padding_right), mode='constant', constant_values=0)
-    
-    # unsure if I can make the assumption that the times and samples columns are the same length
-    # so adding try/except (could be overkill but oh well)
-    max_length_time = waveforms_df['times'].apply(len).max()
-    max_length_intensity = waveforms_df['samples'].apply(len).max()
-    try:
-        # Try to assert that the maximum lengths are the same
-        assert max_length_time == max_length_intensity
-        # If the assertion passes, set max_length to one of them (since they are equal)
-        max_length = max_length_time
-    except AssertionError:
-        # If the assertion fails, calculate max_length as the max of both
-        max_length = max(max_length_time, max_length_intensity)
-
-    #max_len = waveforms_df['times'].apply(len).max()
-    #waveforms_df['times'] = waveforms_df['times'].apply(lambda x: centre_padding(x, max_length))
-    waveforms_df['padded_samples'] = waveforms_df['samples'].apply(lambda x: centre_padding(x, max_length))#.values#()
-    return waveforms_df
-
 
 def pad_sigma(waveforms_df, n_sigma, oversize='remove'):
 
@@ -142,15 +114,14 @@ def pad_sigma(waveforms_df, n_sigma, oversize='remove'):
     
     #calculate new max_length
     max_length=find_len(mean,sigma)
-    print(max_length)
 
-    waveforms_df['padded_samples'] = waveforms_df['samples'].apply(lambda x: equalise_length(x, max_length))#.values#()
+    waveforms_df['padded_sigma_{}'.format(n_sigma)] = waveforms_df['samples'].apply(lambda x: equalise_length(x, max_length))#.values#()
     return waveforms_df.dropna(axis=0)
 
 # I am going to rewrite the original pad_waveforms to add capacity to pad with different numbers - this will be easier to play around with later on than loads of slightly different functions 
 
 
-def pad_waveforms2(waveforms_df, padding_type='constant',mean=0,std=1):
+def pad_waveforms(waveforms_df, padding_name, padding_type='constant',mean=0,std=1):
     '''
     Inputs: 
         waveforms_df: Waveform dataframe with assigned truth values 
@@ -193,5 +164,24 @@ def pad_waveforms2(waveforms_df, padding_type='constant',mean=0,std=1):
         padding_function = gaussian_padding
     else:
         padding_function = centre_padding
-    waveforms_df['padded_samples'] = waveforms_df['samples'].apply(lambda x: padding_function(x, max_length))#.values#()
+    waveforms_df[padding_name] = waveforms_df['samples'].apply(lambda x: padding_function(x, max_length))#.values#()
     return waveforms_df
+
+def make_ML_data(waveforms_df, data_name):
+    data_array=waveforms_df[data_name].to_numpy()
+    x_data=np.stack(data_array,axis=0)
+
+    max_phd=x_data.max()
+    x_data=x_data/max_phd 
+    #x_data[x_data < 0] = 0 -not sure ahout this, can implement if needed
+    y_data = waveforms_df['label'].to_numpy().reshape((-1,1))
+    input_length=x_data.shape[-1]
+
+    runID = waveforms_df['runID']
+    eventID = waveforms_df['eventID']
+    weights_array = waveforms_df['weights_no_gas'].to_numpy()
+
+    ML_data=train_test_split(x_data, y_data, weights_array, runID, eventID, random_state=0)
+
+    return {'data':ML_data, 'input_length':input_length}
+
