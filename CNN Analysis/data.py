@@ -94,3 +94,55 @@ def pad_waveforms(waveforms_df):
     #waveforms_df['times'] = waveforms_df['times'].apply(lambda x: centre_padding(x, max_length))
     waveforms_df['padded_samples'] = waveforms_df['samples'].apply(lambda x: centre_padding(x, max_length))#.values#()
     return waveforms_df
+
+
+def pad_sigma(waveforms_df, n_sigma, oversize='remove'):
+
+    """
+    Inputs: 
+        waveform_df: Waveform dataframe with assigned truth values 
+        n_sigma: distance from mean length to limit to (number of std deviations)
+        oversize: "remove" or "crop" - remove cuts all waveforms about specified length, crop shortens them, removing equal number of time steps from either end
+    Output: 
+        Adds column to waveform dataset where all waveforms are all within sigma of the mean length
+
+    """
+    def equalise_length(waveform, max_len):
+        total_padding = max_len - len(waveform)
+        if total_padding >= 0: #i.e waveform length is within n_sigma
+            padding_left = int(total_padding // 2)
+            padding_right = int(total_padding - padding_left)
+            return np.pad(waveform, (padding_left, padding_right), mode='constant', constant_values=0)
+        elif total_padding < 0: #waveform needs to be removed/cropped
+            if oversize == 'remove':
+                return np.nan
+            elif oversize == 'crop':
+                crop_left = int(np.abs(total_padding) // 2)
+                crop_right = int(np.abs(total_padding) - crop_left)
+                return np.array(waveform[crop_left:-crop_right])
+    
+    def find_len(mean, sigma):
+        return np.round(mean + n_sigma*sigma)
+    
+    # statistics 
+    mean_time=np.mean(waveforms_df['times'].apply(len))
+    sigma_time=np.std(waveforms_df['times'].apply(len))
+    mean_intensity=np.mean(waveforms_df['samples'].apply(len))
+    sigma_intensity=np.std(waveforms_df['samples'].apply(len))
+    #going to leave the try/except in as it can't hurt :))
+    try:
+        assert mean_time == mean_intensity
+        assert sigma_time == sigma_intensity
+        mean=mean_time
+        sigma=sigma_time
+    except AssertionError:
+        # If the assertion fails, take the average of the values - this is somewhat arbitrary 
+        mean = np.mean([mean_time, mean_intensity])
+        std = np.mean([sigma_time, sigma_intensity])
+    
+    #calculate new max_length
+    max_length=find_len(mean,sigma)
+    print(max_length)
+
+    waveforms_df['padded_samples'] = waveforms_df['samples'].apply(lambda x: equalise_length(x, max_length))#.values#()
+    return waveforms_df.dropna(axis=0)

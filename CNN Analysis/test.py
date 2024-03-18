@@ -7,7 +7,7 @@ from hist import Hist
 
 
 # read in waveform dataframe
-waveforms = pd.read_parquet('all_msci_waveforms_df.parquet')
+waveforms = pd.read_parquet('../../../Data/all_msci_waveforms_df.parquet')
 print('Waveforms Set')
 waveforms.info()
 print()
@@ -19,8 +19,8 @@ print()
 # waveforms['times'] = waveforms['times'].apply(np.fromstring)
 #waveforms.info()
 # read in tritium and background datasets and combine
-trit_data = pd.read_csv('../Decision Tree Analysis/data/tritium_ML_data.csv')
-bkg_data = pd.read_csv('../Decision Tree Analysis/data/bg_sr1_vetoes_gassplit.csv')
+trit_data = pd.read_csv('../../../Data/tritium_ML_data.csv')
+bkg_data = pd.read_csv('../../../Data/bg_sr1_vetoes_gassplit.csv')
 orig_train = pd.concat([trit_data, bkg_data], ignore_index=True)
 orig_train = orig_train.drop('Unnamed: 0', axis = 1)
 print('Original Dataset')
@@ -52,11 +52,13 @@ final_dataset = data.waveforms_of_truth(waveforms, orig_train)
 # check the padding works out
 df_cut = final_dataset[final_dataset["type"] != 'gas']
 df_cut.info()
-padded_data = data.pad_waveforms(df_cut)
+padded_data = data.pad_sigma(df_cut,2,'remove')
 print('Waveform Dataset')
 padded_data.info()
 print()
+#padded_data.head()
 
+"""
 # padded_data.info()
 rand_event_num = np.random.randint(0, padded_data.shape[0])
 rand_event_samps = padded_data.at[rand_event_num, 'padded_samples']#.to_numpy()
@@ -140,3 +142,4 @@ plt.savefig('waveform_length_hist_nogas')
 # plt.xlabel('Time steps')
 # plt.ylabel('Signal Intensity')
 # plt.savefig('padding_test_nogas.png')
+"""
