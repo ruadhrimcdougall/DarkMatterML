@@ -100,7 +100,7 @@ def pad_sigma(waveforms_df, n_sigma, oversize='remove'):
 
     """
     Inputs: 
-        waveform_df: Waveform dataframe with assigned truth values 
+        waveforms_df: Waveform dataframe with assigned truth values 
         n_sigma: distance from mean length to limit to (number of std deviations)
         oversize: "remove" or "crop" - remove cuts all waveforms about specified length, crop shortens them, removing equal number of time steps from either end
     Output: 
@@ -146,3 +146,52 @@ def pad_sigma(waveforms_df, n_sigma, oversize='remove'):
 
     waveforms_df['padded_samples'] = waveforms_df['samples'].apply(lambda x: equalise_length(x, max_length))#.values#()
     return waveforms_df.dropna(axis=0)
+
+# I am going to rewrite the original pad_waveforms to add capacity to pad with different numbers - this will be easier to play around with later on than loads of slightly different functions 
+
+
+def pad_waveforms2(waveforms_df, padding_type='constant',mean=0,std=1):
+    '''
+    Inputs: 
+        waveforms_df: Waveform dataframe with assigned truth values 
+        padding_type: type of padding to add to edges - the options are 'constant' (default), 'edge', 'reflect' (from np.pad) and 'gaussian' (which adds gaussian noise to the padding, default is mean=0, std=1 but can be changed)
+    
+    Returns: 
+        Added column to dataset including the padded arrays. All waveforms are padded to be the same length (equal to the length of longest waveform)
+    '''
+
+    def centre_padding(waveform, max_len):
+        total_padding = max_len - len(waveform)
+        padding_left = total_padding // 2
+        padding_right = total_padding - padding_left
+        return np.pad(waveform, (padding_left, padding_right), mode='constant', constant_values=0)
+    
+    def gaussian_padding(waveform, max_len):
+        total_padding = max_len - len(waveform)
+        left = total_padding // 2
+        right = total_padding - left
+        start_padding=np.random.normal(loc=mean,scale=std,size=left)
+        end_padding=np.random.normal(loc=mean,scale=std,size=right)
+        return np.concatenate((start_padding,waveform,end_padding))
+    
+    # unsure if I can make the assumption that the times and samples columns are the same length
+    # so adding try/except (could be overkill but oh well)
+    max_length_time = waveforms_df['times'].apply(len).max()
+    max_length_intensity = waveforms_df['samples'].apply(len).max()
+    try:
+        # Try to assert that the maximum lengths are the same
+        assert max_length_time == max_length_intensity
+        # If the assertion passes, set max_length to one of them (since they are equal)
+        max_length = max_length_time
+    except AssertionError:
+        # If the assertion fails, calculate max_length as the max of both
+        max_length = max(max_length_time, max_length_intensity)
+
+    #max_len = waveforms_df['times'].apply(len).max()
+    #waveforms_df['times'] = waveforms_df['times'].apply(lambda x: centre_padding(x, max_length))
+    if padding_type == 'gaussian':
+        padding_function = gaussian_padding
+    else:
+        padding_function = centre_padding
+    waveforms_df['padded_samples'] = waveforms_df['samples'].apply(lambda x: padding_function(x, max_length))#.values#()
+    return waveforms_df
