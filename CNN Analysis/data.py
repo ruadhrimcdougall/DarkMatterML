@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split, StratifiedKFold
+import matplotlib.pyplot as plt
 
 
 def waveforms_of_truth(waveforms_df, orig_train_df):
@@ -184,4 +185,36 @@ def make_ML_data(waveforms_df, data_name):
     ML_data=train_test_split(x_data, y_data, weights_array, runID, eventID, random_state=0)
 
     return {'data':ML_data, 'input_length':input_length}
+
+def plot_history(model,model_name):
+    fig,axs=plt.subplots(3,1,figsize=(10,15))
+
+    #plotting Accuracy
+    axs[0].plot(model.history['accuracy'], label='Training Accuracy')
+    axs[0].plot(model.history['val_accuracy'],label='Validation Accuracy')
+    axs[0].legend()
+    axs[0].set_ylabel('Accuracy')
+    axs[0].set_xlabel('Epochs')
+    axs[0].set_ylim(top=1)
+
+    #plotting Weighted Accuracy
+    axs[1].plot(model.history['weighted_accuracy'], label='Weighted Training Accuracy')
+    axs[1].plot(model.history['val_weighted_accuracy'],label='Validation Accuracy')
+    axs[1].legend()
+    axs[1].set_ylabel('Weighted Accuracy')
+    axs[1].set_xlabel('Epochs')
+    axs[1].set_ylim(top=1)
+
+    #plotting Loss
+    axs[2].plot(model.history['loss'], label='Training Loss')
+    axs[2].plot(model.history['val_loss'],label='Validation Loss')
+    axs[2].legend()
+    axs[2].set_ylabel('Loss')
+    axs[2].set_xlabel('Epochs')
+
+    plt.savefig('{}{}'.format(model_name,'.png'))
+    
+    plt.show()
+   
+
 
