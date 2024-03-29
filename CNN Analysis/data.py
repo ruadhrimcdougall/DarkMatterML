@@ -122,20 +122,20 @@ def pad_sigma(waveforms_df, n_sigma, oversize='remove'):
 # I am going to rewrite the original pad_waveforms to add capacity to pad with different numbers - this will be easier to play around with later on than loads of slightly different functions 
 
 
-def pad_waveforms(waveforms_df, padding_name, padding_type='constant',mean=0,std=1):
+def pad_waveforms(waveforms_df, padding_name, padding_length=0, padding_type='constant',mean=0,std=1):
     '''
     Inputs: 
         waveforms_df: Waveform dataframe with assigned truth values 
         padding_type: type of padding to add to edges - the options are 'constant' (default), 'edge', 'reflect' (from np.pad) and 'gaussian' (which adds gaussian noise to the padding, default is mean=0, std=1 but can be changed)
-    
+        padding_length: number of time steps to over length of longest pulse - the number will be split evenly on both sides, i.e. a padding_length of 10 adds 5 time steps to either side
     Returns: 
         Added column to dataset including the padded arrays. All waveforms are padded to be the same length (equal to the length of longest waveform)
     '''
 
     def centre_padding(waveform, max_len):
-        total_padding = max_len - len(waveform)
-        padding_left = total_padding // 2
-        padding_right = total_padding - padding_left
+        total_padding = max_len - len(waveform) 
+        padding_left = (total_padding // 2) 
+        padding_right = total_padding - padding_left 
         return np.pad(waveform, (padding_left, padding_right), mode='constant', constant_values=0)
     
     def gaussian_padding(waveform, max_len):
@@ -154,10 +154,10 @@ def pad_waveforms(waveforms_df, padding_name, padding_type='constant',mean=0,std
         # Try to assert that the maximum lengths are the same
         assert max_length_time == max_length_intensity
         # If the assertion passes, set max_length to one of them (since they are equal)
-        max_length = max_length_time
+        max_length = max_length_time + padding_length 
     except AssertionError:
         # If the assertion fails, calculate max_length as the max of both
-        max_length = max(max_length_time, max_length_intensity)
+        max_length = max(max_length_time, max_length_intensity) + padding_length
 
     #max_len = waveforms_df['times'].apply(len).max()
     #waveforms_df['times'] = waveforms_df['times'].apply(lambda x: centre_padding(x, max_length))
@@ -167,6 +167,28 @@ def pad_waveforms(waveforms_df, padding_name, padding_type='constant',mean=0,std
         padding_function = centre_padding
     waveforms_df[padding_name] = waveforms_df['samples'].apply(lambda x: padding_function(x, max_length))#.values#()
     return waveforms_df
+
+
+def crop_waveforms(waveforms_df, crop_value, location):
+
+    """
+    Removes crop_value time steps from ether front or back of waveform depending on location value
+    Inputs: 
+        waveforms_df: Waveform dataframe with assigned truth values 
+        crop_value: number of time steps to remove
+        location: 'front' or 'back' - determines which end of the waveform to crop from
+    """
+
+    padding_name = '{}_{}'.format(crop_value,location)
+    def crop(waveform, crop_value, location):
+        if location == 'front':
+                return waveform[crop_value:] 
+        if location == 'back':
+            return waveform[:-crop_value] 
+
+    waveforms_df[padding_name] = waveforms_df['samples'].apply(lambda x: crop(x,crop_value,location))        
+    return waveforms_df
+        
 
 def make_ML_data(waveforms_df, data_name):
     data_array=waveforms_df[data_name].to_numpy()
