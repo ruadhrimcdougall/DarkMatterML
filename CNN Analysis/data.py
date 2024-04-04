@@ -134,7 +134,7 @@ def pad_waveforms(waveforms_df, padding_name, padding_length=0, padding_type='co
 
     def centre_padding(waveform, max_len):
         total_padding = max_len - len(waveform) 
-        padding_left = (total_padding // 2) 
+        padding_left = total_padding // 2
         padding_right = total_padding - padding_left 
         return np.pad(waveform, (padding_left, padding_right), mode='constant', constant_values=0)
     
@@ -169,7 +169,7 @@ def pad_waveforms(waveforms_df, padding_name, padding_length=0, padding_type='co
     return waveforms_df
 
 
-def crop_waveforms(waveforms_df, crop_value, location):
+def crop_waveforms(waveforms_df, crop_value, crop_set, location):
 
     """
     Removes crop_value time steps from ether front or back of waveform depending on location value
@@ -186,7 +186,7 @@ def crop_waveforms(waveforms_df, crop_value, location):
         if location == 'back':
             return waveform[:-crop_value] 
 
-    waveforms_df[padding_name] = waveforms_df['samples'].apply(lambda x: crop(x,crop_value,location))        
+    waveforms_df[padding_name] = waveforms_df[crop_set].apply(lambda x: crop(x,crop_value,location))        
     return waveforms_df
         
 
@@ -239,4 +239,18 @@ def plot_history(model,model_name):
     plt.show()
    
 
+def calc_aft(waveform, aft):
+    """
+    Calculates the desired aft value by summing the total area of the pulse
+    Inputs: waveform - array of waveform samples
+            aft - the aft proportion required eg for aft75 aft=0.75
+    Outputs: index at which aft occurs in the pulse
+    """
+    i=0
+    x=0
+    while x<=aft*np.sum(waveform):
+        x+=waveform[i]
+        i+=1
+
+    return i 
 
