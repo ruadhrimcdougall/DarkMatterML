@@ -8,3 +8,4 @@ msci_waveforms_df.parquet
 all_msci_waveforms_df.parquet
 padding_test_nogas.png
 *.png
+*.pkl
